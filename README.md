@@ -190,10 +190,6 @@ Improved Resume Content
 
 <img src="screenshots/feature.png" width="850">
 
-### ✨ Features - 2
-
-<img src="screenshots/feature-2.png" width="850">
-
 ### 📤 Upload Resume
 
 <img src="screenshots/upload-resume.png" width="850">
