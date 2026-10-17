@@ -1,2613 +1,693 @@
-<%-- <%@ page language="java"
-    contentType="text/html; charset=UTF-8"
-    pageEncoding="UTF-8"
-    isELIgnored="false"%>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8" %>
+
+<%
+    Object scoreAttr = request.getAttribute("resumeScore");
+    int scoreForJs = 0;
+
+    if (scoreAttr != null) {
+        try {
+            scoreForJs = Integer.parseInt(scoreAttr.toString());
+        } catch (NumberFormatException e) {
+            scoreForJs = 0;
+        }
+    }
+
+    if (scoreForJs < 0) {
+        scoreForJs = 0;
+    }
+
+    if (scoreForJs > 100) {
+        scoreForJs = 100;
+    }
+
+    String aiResultText = request.getAttribute("aiResult") == null
+            ? ""
+            : request.getAttribute("aiResult").toString();
+
+    String resumeTextValue = request.getAttribute("resumeText") == null
+            ? ""
+            : request.getAttribute("resumeText").toString();
+
+    String scoreStatus;
+
+    if (scoreForJs >= 85) {
+        scoreStatus = "Excellent";
+    } else if (scoreForJs >= 70) {
+        scoreStatus = "Good";
+    } else if (scoreForJs >= 50) {
+        scoreStatus = "Average";
+    } else {
+        scoreStatus = "Needs Improvement";
+    }
+%>
 
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Resume Analysis Result | AI Resume Analyzer</title>
 
     <style>
+        :root {
+            --bg: #0b1120;
+            --card: #111c30;
+            --card-light: #17243a;
+            --border: #26364e;
+            --text: #e5edf8;
+            --muted: #9aabc2;
+            --cyan: #38bdf8;
+            --green: #34d399;
+            --purple: #a78bfa;
+            --red: #fb7185;
+        }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: Arial, Helvetica, sans-serif;
         }
 
         body {
-            background: #f4f7f8;
-            color: #263238;
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
         }
 
-        /* ================= NAVBAR ================= */
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
 
         .navbar {
-            background: #0f766e;
-            color: white;
-            padding: 15px 40px;
+            background: #0f192b;
+            border-bottom: 1px solid var(--border);
+            padding: 16px 5%;
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
         }
 
-        .logo {
-            font-size: 22px;
-            font-weight: bold;
-            white-space: nowrap;
+        .brand {
+            font-size: 21px;
+            font-weight: 800;
+            color: var(--cyan);
         }
 
         .nav-links {
             display: flex;
             align-items: center;
-            gap: 22px;
+            gap: 18px;
             flex-wrap: wrap;
         }
 
         .nav-links a {
-            color: white;
-            text-decoration: none;
+            color: var(--muted);
             font-size: 14px;
-            font-weight: 600;
-            transition: 0.3s;
+            transition: color 0.2s;
         }
 
         .nav-links a:hover {
-            opacity: 0.8;
+            color: var(--cyan);
         }
-
-        .user-name {
-            background: rgba(255,255,255,0.15);
-            padding: 8px 14px;
-            border-radius: 20px;
-            font-size: 14px;
-        }
-
-        .logout {
-            background: #dc2626;
-            padding: 8px 14px;
-            border-radius: 6px;
-        }
-
-        .logout:hover {
-            background: #b91c1c;
-            opacity: 1 !important;
-        }
-
-        /* ================= CONTAINER ================= */
 
         .container {
             width: 90%;
-            max-width: 1200px;
-            margin: 40px auto;
+            max-width: 1150px;
+            margin: 35px auto;
         }
 
-        .page-header {
+        .page-heading {
             text-align: center;
             margin-bottom: 30px;
         }
 
-        .page-header h1 {
-            color: #0f766e;
-            font-size: 32px;
-            margin-bottom: 10px;
+        .page-heading .icon {
+            font-size: 42px;
+            margin-bottom: 8px;
         }
 
-        .page-header p {
-            color: #64748b;
+        .page-heading h1 {
+            font-size: clamp(25px, 4vw, 35px);
+            margin-bottom: 8px;
+        }
+
+        .page-heading h1 span {
+            color: var(--cyan);
+        }
+
+        .page-heading p {
+            color: var(--muted);
             font-size: 15px;
         }
 
-        /* ================= SUCCESS ================= */
-
-        .success-box {
-            background: #ecfdf5;
-            border: 1px solid #a7f3d0;
+        .success-banner {
+            padding: 16px 20px;
+            background: rgba(52, 211, 153, 0.09);
+            border: 1px solid rgba(52, 211, 153, 0.3);
             border-radius: 12px;
-            padding: 18px 22px;
-            margin-bottom: 30px;
-            text-align: center;
+            color: #a7f3d0;
+            margin-bottom: 25px;
         }
 
-        .success-box h2 {
-            color: #047857;
-            margin-bottom: 6px;
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 22px;
+            align-items: stretch;
         }
 
-        .success-box p {
-            color: #475569;
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 25px;
+            min-width: 0;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
         }
 
-        /* ================= ATS SCORE ================= */
+        .card h2 {
+            font-size: 19px;
+            margin-bottom: 8px;
+        }
+
+        .card-description {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
 
         .score-card {
-            background: white;
-            border-radius: 16px;
-            padding: 30px;
-            margin-bottom: 25px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             text-align: center;
-        }
-
-        .score-card h2 {
-            color: #0f766e;
-            margin-bottom: 25px;
+            min-height: 310px;
         }
 
         .score-circle {
             width: 180px;
             height: 180px;
             border-radius: 50%;
-            margin: 0 auto 20px;
-
-            background:
-                conic-gradient(
-                    #0f766e var(--score-degree),
-                    #e5e7eb var(--score-degree)
-                );
-
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             position: relative;
+            margin: 12px 0 20px;
+            background: conic-gradient(
+                var(--cyan) <%= scoreForJs * 3.6 %>deg,
+                #26364e <%= scoreForJs * 3.6 %>deg
+            );
         }
 
         .score-circle::before {
             content: "";
             position: absolute;
-            width: 135px;
-            height: 135px;
-            background: white;
+            width: 150px;
+            height: 150px;
             border-radius: 50%;
+            background: var(--card);
         }
 
-        .score-number,
-        .score-label {
+        .score-value {
             position: relative;
-            z-index: 2;
+            z-index: 1;
+            font-size: 43px;
+            font-weight: 800;
         }
 
-        .score-number {
-            font-size: 34px;
-            font-weight: bold;
-            color: #0f766e;
-        }
-
-        .score-label {
-            color: #64748b;
-            font-size: 13px;
-            margin-top: 4px;
+        .score-value small {
+            font-size: 17px;
+            color: var(--muted);
         }
 
         .score-status {
             display: inline-block;
-            padding: 8px 18px;
-            border-radius: 20px;
-            background: #ecfdf5;
-            color: #047857;
-            font-weight: bold;
-            margin-top: 5px;
+            border-radius: 25px;
+            padding: 6px 15px;
+            background: rgba(56, 189, 248, 0.12);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            color: var(--cyan);
+            font-weight: 700;
+            font-size: 13px;
         }
 
-        /* ================= SCORE INFO ================= */
+        .score-note {
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 15px;
+        }
 
-        .score-info {
-            margin: 20px auto 0;
-            max-width: 750px;
-            background: #f0fdfa;
-            border: 1px solid #ccfbf1;
-            border-radius: 10px;
-            padding: 15px 20px;
-            color: #475569;
-            line-height: 1.6;
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 13px 0;
+            border-bottom: 1px solid var(--border);
             font-size: 14px;
         }
 
-        /* ================= JOB MATCH CTA ================= */
-
-        .job-match-cta {
-            background: linear-gradient(135deg, #f0fdfa, #ecfeff);
-            border: 1px solid #99f6e4;
-            border-radius: 16px;
-            padding: 30px;
-            margin-bottom: 30px;
-            text-align: center;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.06);
+        .info-row:last-child {
+            border-bottom: none;
         }
 
-        .job-match-icon {
-            font-size: 38px;
-            margin-bottom: 10px;
+        .info-label {
+            color: var(--muted);
         }
 
-        .job-match-cta h3 {
-            color: #0f766e;
-            font-size: 23px;
-            margin-bottom: 10px;
+        .info-value {
+            text-align: right;
+            overflow-wrap: anywhere;
+            font-weight: 600;
         }
 
-        .job-match-cta p {
-            color: #475569;
-            font-size: 15px;
-            line-height: 1.7;
-            max-width: 760px;
-            margin: 0 auto 22px;
+        .full-width {
+            grid-column: 1 / -1;
         }
 
-        .job-match-btn {
-            display: inline-block;
-            background: #0f766e;
-            color: white;
-            padding: 13px 28px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 15px;
-            transition: 0.3s;
-        }
-
-        .job-match-btn:hover {
-            background: #115e59;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 12px rgba(15,118,110,0.25);
-        }
-
-        /* ================= AI ANALYSIS ================= */
-
-        .analysis-container {
-            background: white;
-            border-radius: 16px;
-            padding: 30px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-            margin-bottom: 30px;
-        }
-
-        .analysis-container > h2 {
-            color: #0f766e;
-            margin-bottom: 25px;
-            font-size: 24px;
-        }
-
-        /* ================= ANALYSIS CARDS ================= */
-
-        .analysis-card {
-            border-left: 5px solid #0f766e;
-            background: #f8fafc;
-            border-radius: 10px;
+        .analysis-content,
+        .resume-content {
+            background: #0b1425;
+            border: 1px solid var(--border);
+            border-radius: 12px;
             padding: 20px;
-            margin-bottom: 18px;
-            transition: 0.3s;
-        }
-
-        .analysis-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.07);
-        }
-
-        .analysis-card h3 {
-            color: #0f766e;
-            margin-bottom: 12px;
-            font-size: 18px;
-        }
-
-        .analysis-content {
-            color: #475569;
-            line-height: 1.7;
+            color: #d6e2f1;
+            font-size: 14px;
             white-space: pre-wrap;
-            font-size: 15px;
-        }
-
-        /* ================= SPECIAL CARD COLORS ================= */
-
-        .skills-card {
-            border-left-color: #2563eb;
-        }
-
-        .skills-card h3 {
-            color: #2563eb;
-        }
-
-        .missing-card {
-            border-left-color: #dc2626;
-        }
-
-        .missing-card h3 {
-            color: #dc2626;
-        }
-
-        .strength-card {
-            border-left-color: #16a34a;
-        }
-
-        .strength-card h3 {
-            color: #16a34a;
-        }
-
-        .weakness-card {
-            border-left-color: #ea580c;
-        }
-
-        .weakness-card h3 {
-            color: #ea580c;
-        }
-
-        .improvement-card {
-            border-left-color: #7c3aed;
-        }
-
-        .improvement-card h3 {
-            color: #7c3aed;
-        }
-
-        /* ================= RESUME TEXT ================= */
-
-        .resume-section {
-            background: white;
-            border-radius: 16px;
-            padding: 30px;
-            margin-bottom: 30px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-        }
-
-        .resume-section h2 {
-            color: #0f766e;
-            margin-bottom: 20px;
-        }
-
-        .resume-text {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 20px;
-            line-height: 1.7;
-            white-space: pre-wrap;
-            color: #475569;
-            max-height: 400px;
+            overflow-wrap: anywhere;
+            max-height: 650px;
             overflow-y: auto;
         }
 
-        /* ================= BUTTONS ================= */
+        .analysis-content {
+            line-height: 1.85;
+        }
 
-        .buttons {
+        .resume-content {
+            line-height: 1.8;
+            max-height: 450px;
+        }
+
+        .actions {
             display: flex;
-            justify-content: center;
-            gap: 15px;
             flex-wrap: wrap;
-            margin: 35px 0;
+            gap: 12px;
+            margin-top: 24px;
         }
 
         .btn {
-            display: inline-block;
-            padding: 12px 22px;
-            border-radius: 7px;
-            text-decoration: none;
-            font-weight: bold;
-            transition: 0.3s;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 18px;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            opacity: 0.9;
         }
 
         .btn-primary {
-            background: #0f766e;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #115e59;
+            background: var(--cyan);
+            color: #07111e;
         }
 
         .btn-secondary {
-            background: #e2e8f0;
-            color: #334155;
+            background: var(--card-light);
+            color: var(--text);
+            border-color: var(--border);
         }
 
-        .btn-secondary:hover {
-            background: #cbd5e1;
+        .btn-purple {
+            background: var(--purple);
+            color: #100b20;
         }
 
-        /* ================= FOOTER ================= */
-
-        footer {
-            background: #0f766e;
-            color: white;
+        .footer {
+            margin-top: 45px;
+            border-top: 1px solid var(--border);
+            background: #0f192b;
             text-align: center;
-            padding: 20px;
-            margin-top: 50px;
+            padding: 25px 15px;
+            color: var(--muted);
+            font-size: 13px;
         }
 
-        /* ================= RESPONSIVE ================= */
+        .footer strong {
+            color: var(--cyan);
+        }
 
-        @media (max-width: 900px) {
+        .footer p {
+            margin: 4px 0;
+        }
+
+        @media (max-width: 760px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .full-width {
+                grid-column: auto;
+            }
 
             .navbar {
-                padding: 15px 20px;
-                flex-direction: column;
-                gap: 15px;
+                padding: 15px 5%;
             }
 
             .nav-links {
-                justify-content: center;
                 gap: 12px;
             }
-        }
-
-        @media (max-width: 600px) {
 
             .container {
-                width: 94%;
+                width: 92%;
+                margin: 25px auto;
             }
 
-            .page-header h1 {
-                font-size: 26px;
-            }
-
-            .score-circle {
-                width: 150px;
-                height: 150px;
-            }
-
-            .score-circle::before {
-                width: 112px;
-                height: 112px;
-            }
-
-            .score-number {
-                font-size: 28px;
-            }
-
-            .analysis-container,
-            .resume-section,
-            .score-card,
-            .job-match-cta {
+            .card {
                 padding: 20px;
             }
 
-            .job-match-cta h3 {
-                font-size: 20px;
+            .actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
             }
         }
-
     </style>
-
 </head>
 
 <body>
 
-
-<!-- ================= NAVBAR ================= -->
-
-<nav class="navbar">
-
-    <div class="logo">
-        🤖 AI Resume Analyzer
-    </div>
-
-    <div class="nav-links">
-
-        <a href="${pageContext.request.contextPath}/home">
-            🏠 Home
-        </a>
-
-        <a href="${pageContext.request.contextPath}/resume-history">
-            📊 Resume History
-        </a>
-
-        <a href="${pageContext.request.contextPath}/upload_resume">
-            📄 Analyze Resume
-        </a>
-        
-   		<a	href="${pageContext.request.contextPath}/resume-rewriter">
-    		✨ AI Resume Rewriter
-		</a>
-
-        <a href="${pageContext.request.contextPath}/job-matching">
-            💼 Job Matching
-        </a>
-
-        <a href="${pageContext.request.contextPath}/home#features">
-            ✨ Features
-        </a>
-
-        <a href="${pageContext.request.contextPath}/home#how-it-works">
-            ⚙️ How It Works
-        </a>
-
-        <span class="user-name">
-            👋 Hi, ${user.name}
-        </span>
-
-        <a class="logout"
-           href="${pageContext.request.contextPath}/logout">
-            🚪 Logout
-        </a>
-
-    </div>
-
-</nav>
-
-
-<!-- ================= MAIN ================= -->
-
-<div class="container">
-
-
-    <!-- ================= PAGE HEADER ================= -->
-
-    <div class="page-header">
-
-        <h1>Resume Analysis Result</h1>
-
-        <p>
-            Your resume has been analyzed successfully using Gemini AI.
-        </p>
-
-    </div>
-
-
-    <!-- ================= SUCCESS MESSAGE ================= -->
-
-    <div class="success-box">
-
-        <h2>✅ Analysis Completed Successfully!</h2>
-
-        <p>
-            Resume:
-            <strong>${resume.fileName}</strong>
-        </p>
-
-    </div>
-
-
-    <!-- ================= ATS SCORE ================= -->
-
-    <div class="score-card">
-
-        <h2>🎯 ATS Compatibility Score</h2>
-
-        <div class="score-circle"
-             id="scoreCircle"
-             style="--score-degree: ${empty resumeScore ? 0 : resumeScore * 3.6}deg;">
-
-            <div class="score-number">
-
-                ${empty resumeScore ? 0 : resumeScore}/100
-
-            </div>
-
-            <div class="score-label">
-
-                out of 100
-
-            </div>
-
-        </div>
-
-
-        <div class="score-status">
-
-            <%
-
-                Object scoreObj =
-                        request.getAttribute("resumeScore");
-
-                int scoreValue = 0;
-
-                if (scoreObj != null) {
-
-                    try {
-
-                        scoreValue =
-                                Integer.parseInt(
-                                    scoreObj.toString()
-                                );
-
-                    } catch (Exception e) {
-
-                        scoreValue = 0;
-
-                    }
-
-                }
-
-                String status;
-
-                if (scoreValue >= 85) {
-
-                    status = "Excellent Resume";
-
-                } else if (scoreValue >= 70) {
-
-                    status = "Good Resume";
-
-                } else if (scoreValue >= 50) {
-
-                    status = "Average Resume";
-
-                } else {
-
-                    status = "Needs Improvement";
-
-                }
-
-            %>
-
-            <%= status %>
-
-        </div>
-
-
-        <div class="score-info">
-
-            🤖 <strong>AI Evaluation:</strong>
-
-            This score is generated by Gemini AI based on resume
-            structure, technical skills, keywords, experience,
-            projects, education, certifications, ATS compatibility
-            and overall resume quality.
-
-        </div>
-
-    </div>
-
-
-    <!-- ================= AI JOB MATCH CTA ================= -->
-
-    <div class="job-match-cta">
-
-        <div class="job-match-icon">
-            💼
-        </div>
-
-        <h3>
-            AI Job Match Analysis
-        </h3>
-
-        <p>
-            Want to know how well your resume matches a specific job?
-            Compare your resume with a job description using Gemini AI
-            and identify matching skills, missing skills, experience
-            gaps and areas for improvement.
-        </p>
-
-        <a href="${pageContext.request.contextPath}/job-matching"
-           class="job-match-btn">
-
-            🚀 Start AI Job Match Analysis
-
-        </a>
-
-    </div>
-
-
-    <!-- ================= AI ANALYSIS ================= -->
-
-    <div class="analysis-container">
-
-        <h2>
-            🤖 AI Resume Analysis
-        </h2>
-
-        <div id="analysisCards"></div>
-
-
-        <!--
-            Raw Gemini response is kept hidden.
-            JavaScript reads this text and creates
-            separate analysis cards.
-        -->
-
-        <div id="rawAiResult" style="display:none;">
-
-            ${aiResult}
-
-        </div>
-
-    </div>
-
-
-    <!-- ================= EXTRACTED RESUME TEXT ================= -->
-
-    <div class="resume-section">
-
-        <h2>
-            📄 Extracted Resume Text
-        </h2>
-
-        <div class="resume-text">
-
-            ${resumeText}
-
-        </div>
-
-    </div>
-
-
-    <!-- ================= BUTTONS ================= -->
-
-    <div class="buttons">
-
-        <a class="btn btn-primary"
-           href="${pageContext.request.contextPath}/upload_resume">
-
-            📄 Analyze Another Resume
-
-        </a>
-
-
-        <a class="btn btn-secondary"
-           href="${pageContext.request.contextPath}/job-matching">
-
-            💼 Match With Job
-
-        </a>
-
-
-        <a class="btn btn-secondary"
-           href="${pageContext.request.contextPath}/interview-questions">
-
-            🎤 AI Interview Questions
-
-        </a>
-
-
-        <a class="btn btn-secondary"
-           href="${pageContext.request.contextPath}/resume-history">
-
-            📊 Resume History
-
-        </a>
-
-
-        <a class="btn btn-secondary"
+    <nav class="navbar">
+        <a class="brand"
            href="${pageContext.request.contextPath}/home">
-
-            🏠 Back to Home
-
-        </a>
-
-    </div>
-
-</div>
-
-
-<!-- ================= FOOTER ================= -->
-
-<footer>
-
-    <p>
-
-        © 2026 AI Resume Analyzer |
-        Built with Java, Spring Boot & Gemini AI
-
-    </p>
-
-</footer>
-
-
-<!-- ================= JAVASCRIPT ================= -->
-
-<script>
-
-
-    /* =====================================================
-       GET RAW GEMINI RESPONSE
-       ===================================================== */
-
-    const rawText =
-        document
-            .getElementById("rawAiResult")
-            .textContent
-            .trim();
-
-
-    /* =====================================================
-       ATS SCORE
-       Database se aa raha hai
-       ===================================================== */
-
-    let score =
-        ${empty resumeScore ? 0 : resumeScore};
-
-
-    if (score < 0) {
-
-        score = 0;
-
-    }
-
-
-    if (score > 100) {
-
-        score = 100;
-
-    }
-
-
-    /* =====================================================
-       ALL GEMINI AI SECTIONS
-       ===================================================== */
-
-    const sections = [
-
-        "PROFILE SUMMARY:",
-
-        "TECHNICAL SKILLS:",
-
-        "SKILL ANALYSIS:",
-
-        "EXPERIENCE ANALYSIS:",
-
-        "PROJECT ANALYSIS:",
-
-        "EDUCATION ANALYSIS:",
-
-        "KEYWORD ANALYSIS:",
-
-        "MISSING SKILLS:",
-
-        "STRENGTHS:",
-
-        "WEAKNESSES:",
-
-        "ATS IMPROVEMENTS:",
-
-        "RESUME IMPROVEMENTS:",
-
-        "FINAL RECOMMENDATION:"
-
-    ];
-
-
-    /* =====================================================
-       ESCAPE HTML
-       Prevent unwanted HTML rendering
-       ===================================================== */
-
-    function escapeHtml(text) {
-
-        const div =
-            document.createElement("div");
-
-        div.textContent = text;
-
-        return div.innerHTML;
-
-    }
-
-
-    /* =====================================================
-       GET CARD CLASS
-       ===================================================== */
-
-    function getCardClass(section) {
-
-
-        if (section === "TECHNICAL SKILLS:") {
-
-            return "analysis-card skills-card";
-
-        }
-
-
-        if (section === "MISSING SKILLS:") {
-
-            return "analysis-card missing-card";
-
-        }
-
-
-        if (section === "STRENGTHS:") {
-
-            return "analysis-card strength-card";
-
-        }
-
-
-        if (section === "WEAKNESSES:") {
-
-            return "analysis-card weakness-card";
-
-        }
-
-
-        if (
-            section === "ATS IMPROVEMENTS:" ||
-            section === "RESUME IMPROVEMENTS:"
-        ) {
-
-            return "analysis-card improvement-card";
-
-        }
-
-
-        return "analysis-card";
-
-    }
-
-
-    /* =====================================================
-       CONVERT SECTION NAME TO DISPLAY TITLE
-       ===================================================== */
-
-    function getTitle(section) {
-
-
-        const titles = {
-
-
-            "PROFILE SUMMARY:":
-
-                "👤 Profile Summary",
-
-
-            "TECHNICAL SKILLS:":
-
-                "💻 Technical Skills",
-
-
-            "SKILL ANALYSIS:":
-
-                "🧠 Skill Analysis",
-
-
-            "EXPERIENCE ANALYSIS:":
-
-                "💼 Experience Analysis",
-
-
-            "PROJECT ANALYSIS:":
-
-                "🚀 Project Analysis",
-
-
-            "EDUCATION ANALYSIS:":
-
-                "🎓 Education Analysis",
-
-
-            "KEYWORD ANALYSIS:":
-
-                "🔑 Keyword Analysis",
-
-
-            "MISSING SKILLS:":
-
-                "⚠️ Missing Skills",
-
-
-            "STRENGTHS:":
-
-                "✅ Strengths",
-
-
-            "WEAKNESSES:":
-
-                "❌ Weaknesses",
-
-
-            "ATS IMPROVEMENTS:":
-
-                "🛠️ ATS Improvements",
-
-
-            "RESUME IMPROVEMENTS:":
-
-                "📝 Resume Improvements",
-
-
-            "FINAL RECOMMENDATION:":
-
-                "🎯 Final Recommendation"
-
-        };
-
-
-        return titles[section] || section;
-
-    }
-
-
-    /* =====================================================
-       CREATE ANALYSIS CARDS
-       ===================================================== */
-
-    function createAnalysisCards(text) {
-
-
-        const container =
-            document.getElementById(
-                "analysisCards"
-            );
-
-
-        let foundAny = false;
-
-
-        const upperText =
-            text.toUpperCase();
-
-
-        for (
-            let i = 0;
-            i < sections.length;
-            i++
-        ) {
-
-
-            const currentSection =
-                sections[i];
-
-
-            const startIndex =
-                upperText.indexOf(
-                    currentSection.toUpperCase()
-                );
-
-
-            if (startIndex === -1) {
-
-                continue;
-
-            }
-
-
-            let endIndex =
-                text.length;
-
-
-            /* ---------------------------------------------
-               Find next section
-               --------------------------------------------- */
-
-            for (
-                let j = i + 1;
-                j < sections.length;
-                j++
-            ) {
-
-
-                const nextIndex =
-                    upperText.indexOf(
-                        sections[j].toUpperCase(),
-                        startIndex +
-                        currentSection.length
-                    );
-
-
-                if (nextIndex !== -1) {
-
-                    endIndex =
-                        nextIndex;
-
-                    break;
-
-                }
-
-            }
-
-
-            /* ---------------------------------------------
-               Extract section content
-               --------------------------------------------- */
-
-            let content =
-                text.substring(
-                    startIndex +
-                    currentSection.length,
-                    endIndex
-                ).trim();
-
-
-            if (content.length === 0) {
-
-                continue;
-
-            }
-
-
-            foundAny = true;
-
-
-            /* ---------------------------------------------
-               Create Card
-               --------------------------------------------- */
-
-            const card =
-                document.createElement(
-                    "div"
-                );
-
-
-            card.className =
-                getCardClass(
-                    currentSection
-                );
-
-
-            /* ---------------------------------------------
-               Create Heading
-               --------------------------------------------- */
-
-            const heading =
-                document.createElement(
-                    "h3"
-                );
-
-
-            heading.textContent =
-                getTitle(
-                    currentSection
-                );
-
-
-            /* ---------------------------------------------
-               Create Content
-               --------------------------------------------- */
-
-            const contentDiv =
-                document.createElement(
-                    "div"
-                );
-
-
-            contentDiv.className =
-                "analysis-content";
-
-
-            contentDiv.innerHTML =
-                escapeHtml(
-                    content
-                );
-
-
-            /* ---------------------------------------------
-               Add Elements
-               --------------------------------------------- */
-
-            card.appendChild(
-                heading
-            );
-
-
-            card.appendChild(
-                contentDiv
-            );
-
-
-            container.appendChild(
-                card
-            );
-
-        }
-
-
-        /* =================================================
-           FALLBACK
-           Agar Gemini expected format follow na kare
-           ================================================= */
-
-        if (!foundAny) {
-
-
-            const card =
-                document.createElement(
-                    "div"
-                );
-
-
-            card.className =
-                "analysis-card";
-
-
-            const heading =
-                document.createElement(
-                    "h3"
-                );
-
-
-            heading.textContent =
-                "🤖 AI Analysis";
-
-
-            const contentDiv =
-                document.createElement(
-                    "div"
-                );
-
-
-            contentDiv.className =
-                "analysis-content";
-
-
-            contentDiv.innerHTML =
-                escapeHtml(
-                    text
-                );
-
-
-            card.appendChild(
-                heading
-            );
-
-
-            card.appendChild(
-                contentDiv
-            );
-
-
-            container.appendChild(
-                card
-            );
-
-        }
-
-    }
-
-
-    /* =====================================================
-       START ANALYSIS DISPLAY
-       ===================================================== */
-
-    createAnalysisCards(rawText);
-
-
-</script>
-
-
-</body>
-
-</html>
- --%>
- 
- 
- 
- 
- 
- 
- <%@ page language="java"
-    contentType="text/html; charset=UTF-8"
-    pageEncoding="UTF-8"
-    isELIgnored="false"%>
-
-<!DOCTYPE html>
-<html>
-
-<head>
-
-    <meta charset="UTF-8">
-
-    <title>Resume Analysis Result | AI Resume Analyzer</title>
-
-    <style>
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: Arial, Helvetica, sans-serif;
-        }
-
-        body {
-            background: #f4f7f8;
-            color: #263238;
-        }
-
-      /* ================= PROFESSIONAL NAVBAR ================= */
-
-.navbar {
-    background: #0f766e;
-    color: white;
-    padding: 12px 40px 0;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-}
-
-
-/* ================= TOP NAVBAR ================= */
-
-.navbar-top {
-    width: 100%;
-    min-height: 52px;
-
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-
-/* ================= LOGO ================= */
-
-.logo {
-    font-size: 22px;
-    font-weight: bold;
-    white-space: nowrap;
-}
-
-
-/* ================= USER AREA ================= */
-
-.top-user {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-
-/* ================= USER NAME ================= */
-
-.user-name {
-    background: rgba(255,255,255,0.15);
-    padding: 8px 14px;
-    border-radius: 20px;
-    font-size: 14px;
-    white-space: nowrap;
-}
-
-
-/* ================= LOGOUT ================= */
-
-.logout {
-    background: #dc2626;
-    color: white !important;
-    padding: 8px 14px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-size: 14px !important;
-    font-weight: 600;
-    white-space: nowrap;
-}
-
-.logout:hover {
-    background: #b91c1c;
-    opacity: 1 !important;
-}
-
-
-/* ================= NAVIGATION LINKS ================= */
-
-.nav-links {
-    width: 100%;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    gap: 6px;
-
-    margin-top: 8px;
-    padding-bottom: 10px;
-
-    flex-wrap: nowrap;
-    white-space: nowrap;
-}
-
-
-/* ================= NAV LINK ================= */
-
-.nav-links a {
-    color: white;
-    text-decoration: none;
-
-    font-size: 13px;
-    font-weight: 600;
-
-    padding: 8px 11px;
-    border-radius: 7px;
-
-    white-space: nowrap;
-
-    transition: all 0.25s ease;
-}
-
-.nav-links a:hover {
-    background: rgba(255,255,255,0.15);
-}
-
-        /* ================= CONTAINER ================= */
-
-        .container {
-            width: 90%;
-            max-width: 1200px;
-            margin: 40px auto;
-        }
-
-        .page-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .page-header h1 {
-            color: #0f766e;
-            font-size: 32px;
-            margin-bottom: 10px;
-        }
-
-        .page-header p {
-            color: #64748b;
-            font-size: 15px;
-        }
-
-        /* ================= SUCCESS ================= */
-
-        .success-box {
-            background: #ecfdf5;
-            border: 1px solid #a7f3d0;
-            border-radius: 12px;
-            padding: 18px 22px;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-
-        .success-box h2 {
-            color: #047857;
-            margin-bottom: 6px;
-        }
-
-        .success-box p {
-            color: #475569;
-        }
-
-        /* ================= ATS SCORE ================= */
-
-        .score-card {
-            background: white;
-            border-radius: 16px;
-            padding: 30px;
-            margin-bottom: 25px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-            text-align: center;
-        }
-
-        .score-card h2 {
-            color: #0f766e;
-            margin-bottom: 25px;
-        }
-
-        .score-circle {
-            width: 180px;
-            height: 180px;
-            border-radius: 50%;
-            margin: 0 auto 20px;
-
-            background:
-                conic-gradient(
-                    #0f766e var(--score-degree),
-                    #e5e7eb var(--score-degree)
-                );
-
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-
-        .score-circle::before {
-            content: "";
-            position: absolute;
-            width: 135px;
-            height: 135px;
-            background: white;
-            border-radius: 50%;
-        }
-
-        .score-number,
-        .score-label {
-            position: relative;
-            z-index: 2;
-        }
-
-        .score-number {
-            font-size: 34px;
-            font-weight: bold;
-            color: #0f766e;
-        }
-
-        .score-label {
-            color: #64748b;
-            font-size: 13px;
-            margin-top: 4px;
-        }
-
-        .score-status {
-            display: inline-block;
-            padding: 8px 18px;
-            border-radius: 20px;
-            background: #ecfdf5;
-            color: #047857;
-            font-weight: bold;
-            margin-top: 5px;
-        }
-
-        /* ================= SCORE INFO ================= */
-
-        .score-info {
-            margin: 20px auto 0;
-            max-width: 750px;
-            background: #f0fdfa;
-            border: 1px solid #ccfbf1;
-            border-radius: 10px;
-            padding: 15px 20px;
-            color: #475569;
-            line-height: 1.6;
-            font-size: 14px;
-        }
-
-        /* ================= JOB MATCH CTA ================= */
-
-        .job-match-cta {
-            background: linear-gradient(135deg, #f0fdfa, #ecfeff);
-            border: 1px solid #99f6e4;
-            border-radius: 16px;
-            padding: 30px;
-            margin-bottom: 30px;
-            text-align: center;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.06);
-        }
-
-        .job-match-icon {
-            font-size: 38px;
-            margin-bottom: 10px;
-        }
-
-        .job-match-cta h3 {
-            color: #0f766e;
-            font-size: 23px;
-            margin-bottom: 10px;
-        }
-
-        .job-match-cta p {
-            color: #475569;
-            font-size: 15px;
-            line-height: 1.7;
-            max-width: 760px;
-            margin: 0 auto 22px;
-        }
-
-        .job-match-btn {
-            display: inline-block;
-            background: #0f766e;
-            color: white;
-            padding: 13px 28px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 15px;
-            transition: 0.3s;
-        }
-
-        .job-match-btn:hover {
-            background: #115e59;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 12px rgba(15,118,110,0.25);
-        }
-
-        /* ================= AI ANALYSIS ================= */
-
-        .analysis-container {
-            background: white;
-            border-radius: 16px;
-            padding: 30px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-            margin-bottom: 30px;
-        }
-
-        .analysis-container > h2 {
-            color: #0f766e;
-            margin-bottom: 25px;
-            font-size: 24px;
-        }
-
-        /* ================= ANALYSIS CARDS ================= */
-
-        .analysis-card {
-            border-left: 5px solid #0f766e;
-            background: #f8fafc;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 18px;
-            transition: 0.3s;
-        }
-
-        .analysis-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.07);
-        }
-
-        .analysis-card h3 {
-            color: #0f766e;
-            margin-bottom: 12px;
-            font-size: 18px;
-        }
-
-        .analysis-content {
-            color: #475569;
-            line-height: 1.7;
-            white-space: pre-wrap;
-            font-size: 15px;
-        }
-
-        /* ================= SPECIAL CARD COLORS ================= */
-
-        .skills-card {
-            border-left-color: #2563eb;
-        }
-
-        .skills-card h3 {
-            color: #2563eb;
-        }
-
-        .missing-card {
-            border-left-color: #dc2626;
-        }
-
-        .missing-card h3 {
-            color: #dc2626;
-        }
-
-        .strength-card {
-            border-left-color: #16a34a;
-        }
-
-        .strength-card h3 {
-            color: #16a34a;
-        }
-
-        .weakness-card {
-            border-left-color: #ea580c;
-        }
-
-        .weakness-card h3 {
-            color: #ea580c;
-        }
-
-        .improvement-card {
-            border-left-color: #7c3aed;
-        }
-
-        .improvement-card h3 {
-            color: #7c3aed;
-        }
-
-        /* ================= RESUME TEXT ================= */
-
-        .resume-section {
-            background: white;
-            border-radius: 16px;
-            padding: 30px;
-            margin-bottom: 30px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-        }
-
-        .resume-section h2 {
-            color: #0f766e;
-            margin-bottom: 20px;
-        }
-
-        .resume-text {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 20px;
-            line-height: 1.7;
-            white-space: pre-wrap;
-            color: #475569;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        /* ================= BUTTONS ================= */
-
-        .buttons {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            flex-wrap: wrap;
-            margin: 35px 0;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 12px 22px;
-            border-radius: 7px;
-            text-decoration: none;
-            font-weight: bold;
-            transition: 0.3s;
-        }
-
-        .btn-primary {
-            background: #0f766e;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #115e59;
-        }
-
-        .btn-secondary {
-            background: #e2e8f0;
-            color: #334155;
-        }
-
-        .btn-secondary:hover {
-            background: #cbd5e1;
-        }
-
-        /* ================= FOOTER ================= */
-
-        footer {
-            background: #0f766e;
-            color: white;
-            text-align: center;
-            padding: 20px;
-            margin-top: 50px;
-        }
-
-        /* ================= RESPONSIVE ================= */
-
-        @media (max-width: 900px) {
-
-            .navbar {
-                padding: 15px 20px;
-                flex-direction: column;
-                gap: 15px;
-            }
-
-            .nav-links {
-                justify-content: center;
-                gap: 12px;
-            }
-        }
-
-        @media (max-width: 600px) {
-
-            .container {
-                width: 94%;
-            }
-
-            .page-header h1 {
-                font-size: 26px;
-            }
-
-            .score-circle {
-                width: 150px;
-                height: 150px;
-            }
-
-            .score-circle::before {
-                width: 112px;
-                height: 112px;
-            }
-
-            .score-number {
-                font-size: 28px;
-            }
-
-            .analysis-container,
-            .resume-section,
-            .score-card,
-            .job-match-cta {
-                padding: 20px;
-            }
-
-            .job-match-cta h3 {
-                font-size: 20px;
-            }
-        }
-
-    </style>
-
-</head>
-
-<body>
-
-
-
-<!-- ================= NAVBAR ================= -->
-
-<nav class="navbar">
-
-    <div class="navbar-top">
-
-        <div class="logo">
             🤖 AI Resume Analyzer
+        </a>
+
+        <div class="nav-links">
+            <a href="${pageContext.request.contextPath}/home">🏠 Home</a>
+            <a href="${pageContext.request.contextPath}/upload_resume">📄 Upload Resume</a>
+            <a href="${pageContext.request.contextPath}/resume-history">📊 History</a>
+            <a href="${pageContext.request.contextPath}/job-matching">🎯 Job Matching</a>
+            <a href="${pageContext.request.contextPath}/logout">🚪 Logout</a>
+        </div>
+    </nav>
+
+    <main class="container">
+
+        <header class="page-heading">
+            <div class="icon">🎉</div>
+            <h1>Resume <span>Analysis Result</span></h1>
+            <p>Your resume has been processed. Review your score and AI feedback below.</p>
+        </header>
+
+        <div class="success-banner">
+            ✅ <strong>Analysis completed!</strong>
+            Review the results and use the suggestions to improve your resume.
         </div>
 
-        <div class="top-user">
+        <section class="dashboard-grid">
 
-            <span class="user-name">
-                👋 Hi, ${user.name}
-            </span>
+            <div class="card score-card">
+                <h2>ATS Compatibility Score</h2>
+                <p class="card-description">
+                    Your resume's estimated compatibility score
+                </p>
 
-            <a class="logout"
-               href="${pageContext.request.contextPath}/logout">
-                🚪 Logout
-            </a>
+                <div class="score-circle">
+                    <div class="score-value">
+                        <%= scoreForJs %><small>/100</small>
+                    </div>
+                </div>
 
-        </div>
+                <span class="score-status"><%= scoreStatus %></span>
 
-    </div>
-
-
-    <div class="nav-links">
-
-        <a href="${pageContext.request.contextPath}/home">
-            🏠 Home
-        </a>
-        
-        <a href="${pageContext.request.contextPath}/upload_resume">
-            📄 Analyze Resume
-        </a>
-
-        <a href="${pageContext.request.contextPath}/resume-history">
-            📊 Resume History
-        </a>
-
-        <a href="${pageContext.request.contextPath}/resume-rewriter">
-            ✨ AI Resume Rewriter
-        </a>
-
-        <a href="${pageContext.request.contextPath}/job-matching">
-            💼 Job Matching
-        </a>
-        
-        <a href="${pageContext.request.contextPath}/interview-questions">
-            ⚙️ AI Interview Questions
-        </a>
-
-        <a href="${pageContext.request.contextPath}/home#features">
-            ✨ Features
-        </a>
-
-        <a href="${pageContext.request.contextPath}/home#how-it-works">
-            ⚙️ How It Works
-        </a>
-
-    </div>
-
-</nav>
-
-
-<!-- ================= MAIN ================= -->
-
-<div class="container">
-
-
-    <!-- ================= PAGE HEADER ================= -->
-
-    <div class="page-header">
-
-        <h1>Resume Analysis Result</h1>
-
-        <p>
-            Your resume has been analyzed successfully using Gemini AI.
-        </p>
-
-    </div>
-
-
-    <!-- ================= SUCCESS MESSAGE ================= -->
-
-    <div class="success-box">
-
-        <h2>✅ Analysis Completed Successfully!</h2>
-
-        <p>
-            Resume:
-            <strong>${resume.fileName}</strong>
-        </p>
-
-    </div>
-
-
-    <!-- ================= ATS SCORE ================= -->
-
-    <div class="score-card">
-
-        <h2>🎯 ATS Compatibility Score</h2>
-
-        <div class="score-circle"
-             id="scoreCircle"
-             style="--score-degree: ${empty resumeScore ? 0 : resumeScore * 3.6}deg;">
-
-            <div class="score-number">
-
-                ${empty resumeScore ? 0 : resumeScore}/100
-
+                <p class="score-note">
+                    AI-generated estimate. Actual ATS results may vary by employer and system.
+                </p>
             </div>
 
-            <div class="score-label">
+            <div class="card">
+                <h2>📋 Resume Information</h2>
+                <p class="card-description">
+                    Details of your analyzed resume
+                </p>
 
-                out of 100
+                <div class="info-row">
+                    <span class="info-label">Candidate</span>
+                    <span class="info-value">
+                        <%= request.getAttribute("user") != null
+                            && ((com.aIresumeanalyzer.entity.User) request.getAttribute("user")).getName() != null
+                            ? org.springframework.web.util.HtmlUtils.htmlEscape(
+                                ((com.aIresumeanalyzer.entity.User) request.getAttribute("user")).getName())
+                            : "User" %>
+                    </span>
+                </div>
 
+                <div class="info-row">
+                    <span class="info-label">Resume File</span>
+                    <span class="info-value">
+                        <%= request.getAttribute("resume") != null
+                            && ((com.aIresumeanalyzer.entity.Resume) request.getAttribute("resume")).getFileName() != null
+                            ? org.springframework.web.util.HtmlUtils.htmlEscape(
+                                ((com.aIresumeanalyzer.entity.Resume) request.getAttribute("resume")).getFileName())
+                            : "Resume PDF" %>
+                    </span>
+                </div>
+
+                <div class="info-row">
+                    <span class="info-label">ATS Score</span>
+                    <span class="info-value"><%= scoreForJs %>/100</span>
+                </div>
+
+                <div class="info-row">
+                    <span class="info-label">Result</span>
+                    <span class="info-value"><%= scoreStatus %></span>
+                </div>
+
+                <div class="actions">
+                    <a class="btn btn-primary"
+                       href="${pageContext.request.contextPath}/upload_resume">
+                        📤 Analyze Another Resume
+                    </a>
+
+                    <a class="btn btn-secondary"
+                       href="${pageContext.request.contextPath}/resume-history">
+                        📚 Resume History
+                    </a>
+                </div>
             </div>
 
-        </div>
+            <section class="card full-width">
+                <h2>✨ AI-Powered Resume Insights</h2>
+                <p class="card-description">
+                    Your personalized resume evaluation, skill insights and career improvement points.
+                </p>
 
+                <div class="analysis-content" id="analysisContent"><%= org.springframework.web.util.HtmlUtils.htmlEscape(aiResultText) %></div>
 
-        <div class="score-status">
+                <div class="actions">
+                    <button type="button" class="btn btn-secondary"
+                            onclick="copyAnalysis()">
+                        📋 Copy Analysis
+                    </button>
 
-            <%
+                    <button type="button" class="btn btn-secondary"
+                            onclick="downloadAnalysis()">
+                        ⬇️ Download Analysis
+                    </button>
 
-                Object scoreObj =
-                        request.getAttribute("resumeScore");
+                    <a class="btn btn-purple"
+                       href="${pageContext.request.contextPath}/job-matching">
+                        🎯 Match With Job
+                    </a>
+                </div>
+            </section>
 
-                int scoreValue = 0;
+            <section class="card full-width">
+                <h2>📄 Extracted Resume Text</h2>
+                <p class="card-description">
+                    Text extracted from the uploaded PDF for AI analysis.
+                </p>
 
-                if (scoreObj != null) {
+                <div class="resume-content" id="resumeContent"><%= org.springframework.web.util.HtmlUtils.htmlEscape(resumeTextValue) %></div>
 
-                    try {
+                <div class="actions">
+                    <button type="button" class="btn btn-secondary"
+                            onclick="copyResumeText()">
+                        📋 Copy Resume Text
+                    </button>
+                </div>
+            </section>
 
-                        scoreValue =
-                                Integer.parseInt(
-                                    scoreObj.toString()
-                                );
+        </section>
 
-                    } catch (Exception e) {
+    </main>
 
-                        scoreValue = 0;
+    <footer class="footer">
+        <p><strong>🤖 AI Resume Analyzer</strong></p>
+        <p>Intelligent AI Resume Analyzer and Career Assistant</p>
+        <p>Developed by Krishnakant Patidar</p>
+        <p>Contact: patidarkrishna188@gmail.com</p>
+        <p>© 2026 AI Resume Analyzer | All Rights Reserved</p>
+    </footer>
 
+    <script>
+        /*
+         * Changes only the displayed analysis headings.
+         * The original AI response in the database is not modified.
+         */
+        function formatAnalysisHeadings() {
+            const analysisElement = document.getElementById("analysisContent");
+
+            if (!analysisElement) {
+                return;
+            }
+
+            const headingMap = {
+                "ATS SCORE": "ATS COMPATIBILITY SCORE",
+                "PROFILE SUMMARY": "CANDIDATE SNAPSHOT",
+                "TECHNICAL SKILLS": "TECHNICAL SKILLSET",
+                "SKILL ANALYSIS": "SKILLS OVERVIEW",
+                "STRENGTHS": "KEY STRENGTHS",
+                "WEAKNESSES": "GROWTH AREAS",
+                "EXPERIENCE ANALYSIS": "PROFESSIONAL EXPERIENCE INSIGHTS",
+                "IMPROVEMENT SUGGESTIONS": "CAREER BOOSTER RECOMMENDATIONS",
+                "MISSING SKILLS": "SKILLS TO DEVELOP"
+            };
+
+            const originalText = analysisElement.innerText || "";
+            const lines = originalText.split("\n");
+
+            const updatedLines = lines.map(function (line) {
+                const trimmedLine = line.trim();
+                const colonIndex = trimmedLine.indexOf(":");
+
+                let heading = "";
+                let remainder = "";
+
+                if (colonIndex >= 0) {
+                    heading = trimmedLine.substring(0, colonIndex).trim();
+                    remainder = trimmedLine.substring(colonIndex);
+                } else {
+                    heading = trimmedLine;
+                }
+
+                const upperHeading = heading.toUpperCase();
+
+                if (Object.prototype.hasOwnProperty.call(headingMap, upperHeading)) {
+                    const replacement = headingMap[upperHeading];
+
+                    if (colonIndex >= 0) {
+                        return line.substring(0, line.indexOf(trimmedLine))
+                            + replacement + remainder;
                     }
 
+                    return line.substring(0, line.indexOf(trimmedLine))
+                        + replacement;
                 }
 
-                String status;
+                return line;
+            });
 
-                if (scoreValue >= 85) {
-
-                    status = "Excellent Resume";
-
-                } else if (scoreValue >= 70) {
-
-                    status = "Good Resume";
-
-                } else if (scoreValue >= 50) {
-
-                    status = "Average Resume";
-
-                } else {
-
-                    status = "Needs Improvement";
-
-                }
-
-            %>
-
-            <%= status %>
-
-        </div>
-
-
-        <div class="score-info">
-
-            🤖 <strong>AI Evaluation:</strong>
-
-            This score is generated by Gemini AI based on resume
-            structure, technical skills, keywords, experience,
-            projects, education, certifications, ATS compatibility
-            and overall resume quality.
-
-        </div>
-
-    </div>
-
-
-    <!-- ================= AI JOB MATCH CTA ================= -->
-
-    <div class="job-match-cta">
-
-        <div class="job-match-icon">
-            💼
-        </div>
-
-        <h3>
-            AI Job Match Analysis
-        </h3>
-
-        <p>
-            Want to know how well your resume matches a specific job?
-            Compare your resume with a job description using Gemini AI
-            and identify matching skills, missing skills, experience
-            gaps and areas for improvement.
-        </p>
-
-        <a href="${pageContext.request.contextPath}/job-matching"
-           class="job-match-btn">
-
-            🚀 Start AI Job Match Analysis
-
-        </a>
-
-    </div>
-
-
-    <!-- ================= AI ANALYSIS ================= -->
-
-    <div class="analysis-container">
-
-        <h2>
-            🤖 AI Resume Analysis
-        </h2>
-
-        <div id="analysisCards"></div>
-
-
-        <!--
-            Raw Gemini response is kept hidden.
-            JavaScript reads this text and creates
-            separate analysis cards.
-        -->
-
-        <div id="rawAiResult" style="display:none;">
-
-            ${aiResult}
-
-        </div>
-
-    </div>
-
-
-    <!-- ================= EXTRACTED RESUME TEXT ================= -->
-
-    <div class="resume-section">
-
-        <h2>
-            📄 Extracted Resume Text
-        </h2>
-
-        <div class="resume-text">
-
-            ${resumeText}
-
-        </div>
-
-    </div>
-
-
-    <!-- ================= BUTTONS ================= -->
-
-    <div class="buttons">
-
-        <a class="btn btn-primary"
-           href="${pageContext.request.contextPath}/upload_resume">
-
-            📄 Analyze Another Resume
-
-        </a>
-
-
-        <a class="btn btn-secondary"
-           href="${pageContext.request.contextPath}/job-matching">
-
-            💼 Match With Job
-
-        </a>
-
-
-        <a class="btn btn-secondary"
-           href="${pageContext.request.contextPath}/interview-questions">
-
-            🎤 AI Interview Questions
-
-        </a>
-
-
-        <a class="btn btn-secondary"
-           href="${pageContext.request.contextPath}/resume-history">
-
-            📊 Resume History
-
-        </a>
-
-
-        <a class="btn btn-secondary"
-           href="${pageContext.request.contextPath}/home">
-
-            🏠 Back to Home
-
-        </a>
-
-    </div>
-
-</div>
-
-
-<!-- ================= FOOTER ================= -->
-
-<footer>
-
-    <p>
-
-        © 2026 AI Resume Analyzer |
-        Built with Java, Spring Boot & Gemini AI
-
-    </p>
-
-</footer>
-
-
-<!-- ================= JAVASCRIPT ================= -->
-
-<script>
-
-
-    /* =====================================================
-       GET RAW GEMINI RESPONSE
-       ===================================================== */
-
-    const rawText =
-        document
-            .getElementById("rawAiResult")
-            .textContent
-            .trim();
-
-
-    /* =====================================================
-       ATS SCORE
-       Database se aa raha hai
-       ===================================================== */
-
-    let score =
-        ${empty resumeScore ? 0 : resumeScore};
-
-
-    if (score < 0) {
-
-        score = 0;
-
-    }
-
-
-    if (score > 100) {
-
-        score = 100;
-
-    }
-
-
-    /* =====================================================
-       ALL GEMINI AI SECTIONS
-       ===================================================== */
-
-    const sections = [
-
-        "PROFILE SUMMARY:",
-
-        "TECHNICAL SKILLS:",
-
-        "SKILL ANALYSIS:",
-
-        "EXPERIENCE ANALYSIS:",
-
-        "PROJECT ANALYSIS:",
-
-        "EDUCATION ANALYSIS:",
-
-        "KEYWORD ANALYSIS:",
-
-        "MISSING SKILLS:",
-
-        "STRENGTHS:",
-
-        "WEAKNESSES:",
-
-        "ATS IMPROVEMENTS:",
-
-        "RESUME IMPROVEMENTS:",
-
-        "FINAL RECOMMENDATION:"
-
-    ];
-
-
-    /* =====================================================
-       ESCAPE HTML
-       Prevent unwanted HTML rendering
-       ===================================================== */
-
-    function escapeHtml(text) {
-
-        const div =
-            document.createElement("div");
-
-        div.textContent = text;
-
-        return div.innerHTML;
-
-    }
-
-
-    /* =====================================================
-       GET CARD CLASS
-       ===================================================== */
-
-    function getCardClass(section) {
-
-
-        if (section === "TECHNICAL SKILLS:") {
-
-            return "analysis-card skills-card";
-
+            analysisElement.textContent = updatedLines.join("\n");
         }
 
-
-        if (section === "MISSING SKILLS:") {
-
-            return "analysis-card missing-card";
-
-        }
-
-
-        if (section === "STRENGTHS:") {
-
-            return "analysis-card strength-card";
-
-        }
-
-
-        if (section === "WEAKNESSES:") {
-
-            return "analysis-card weakness-card";
-
-        }
-
-
-        if (
-            section === "ATS IMPROVEMENTS:" ||
-            section === "RESUME IMPROVEMENTS:"
-        ) {
-
-            return "analysis-card improvement-card";
-
-        }
-
-
-        return "analysis-card";
-
-    }
-
-
-    /* =====================================================
-       CONVERT SECTION NAME TO DISPLAY TITLE
-       ===================================================== */
-
-    function getTitle(section) {
-
-
-        const titles = {
-
-
-            "PROFILE SUMMARY:":
-
-                "👤 Profile Summary",
-
-
-            "TECHNICAL SKILLS:":
-
-                "💻 Technical Skills",
-
-
-            "SKILL ANALYSIS:":
-
-                "🧠 Skill Analysis",
-
-
-            "EXPERIENCE ANALYSIS:":
-
-                "💼 Experience Analysis",
-
-
-            "PROJECT ANALYSIS:":
-
-                "🚀 Project Analysis",
-
-
-            "EDUCATION ANALYSIS:":
-
-                "🎓 Education Analysis",
-
-
-            "KEYWORD ANALYSIS:":
-
-                "🔑 Keyword Analysis",
-
-
-            "MISSING SKILLS:":
-
-                "⚠️ Missing Skills",
-
-
-            "STRENGTHS:":
-
-                "✅ Strengths",
-
-
-            "WEAKNESSES:":
-
-                "❌ Weaknesses",
-
-
-            "ATS IMPROVEMENTS:":
-
-                "🛠️ ATS Improvements",
-
-
-            "RESUME IMPROVEMENTS:":
-
-                "📝 Resume Improvements",
-
-
-            "FINAL RECOMMENDATION:":
-
-                "🎯 Final Recommendation"
-
-        };
-
-
-        return titles[section] || section;
-
-    }
-
-
-    /* =====================================================
-       CREATE ANALYSIS CARDS
-       ===================================================== */
-
-    function createAnalysisCards(text) {
-
-
-        const container =
-            document.getElementById(
-                "analysisCards"
-            );
-
-
-        let foundAny = false;
-
-
-        const upperText =
-            text.toUpperCase();
-
-
-        for (
-            let i = 0;
-            i < sections.length;
-            i++
-        ) {
-
-
-            const currentSection =
-                sections[i];
-
-
-            const startIndex =
-                upperText.indexOf(
-                    currentSection.toUpperCase()
-                );
-
-
-            if (startIndex === -1) {
-
-                continue;
-
+        function copyText(elementId, successMessage) {
+            const element = document.getElementById(elementId);
+            const text = element ? element.innerText : "";
+
+            if (!text.trim()) {
+                alert("There is no text available to copy.");
+                return;
             }
 
-
-            let endIndex =
-                text.length;
-
-
-            /* ---------------------------------------------
-               Find next section
-               --------------------------------------------- */
-
-            for (
-                let j = i + 1;
-                j < sections.length;
-                j++
-            ) {
-
-
-                const nextIndex =
-                    upperText.indexOf(
-                        sections[j].toUpperCase(),
-                        startIndex +
-                        currentSection.length
-                    );
-
-
-                if (nextIndex !== -1) {
-
-                    endIndex =
-                        nextIndex;
-
-                    break;
-
-                }
-
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text)
+                    .then(function () {
+                        alert(successMessage);
+                    })
+                    .catch(function () {
+                        fallbackCopy(text, successMessage);
+                    });
+            } else {
+                fallbackCopy(text, successMessage);
             }
-
-
-            /* ---------------------------------------------
-               Extract section content
-               --------------------------------------------- */
-
-            let content =
-                text.substring(
-                    startIndex +
-                    currentSection.length,
-                    endIndex
-                ).trim();
-
-
-            if (content.length === 0) {
-
-                continue;
-
-            }
-
-
-            foundAny = true;
-
-
-            /* ---------------------------------------------
-               Create Card
-               --------------------------------------------- */
-
-            const card =
-                document.createElement(
-                    "div"
-                );
-
-
-            card.className =
-                getCardClass(
-                    currentSection
-                );
-
-
-            /* ---------------------------------------------
-               Create Heading
-               --------------------------------------------- */
-
-            const heading =
-                document.createElement(
-                    "h3"
-                );
-
-
-            heading.textContent =
-                getTitle(
-                    currentSection
-                );
-
-
-            /* ---------------------------------------------
-               Create Content
-               --------------------------------------------- */
-
-            const contentDiv =
-                document.createElement(
-                    "div"
-                );
-
-
-            contentDiv.className =
-                "analysis-content";
-
-
-            contentDiv.innerHTML =
-                escapeHtml(
-                    content
-                );
-
-
-            /* ---------------------------------------------
-               Add Elements
-               --------------------------------------------- */
-
-            card.appendChild(
-                heading
-            );
-
-
-            card.appendChild(
-                contentDiv
-            );
-
-
-            container.appendChild(
-                card
-            );
-
         }
 
+        function fallbackCopy(text, successMessage) {
+            const textarea = document.createElement("textarea");
+            textarea.value = text;
+            textarea.style.position = "fixed";
+            textarea.style.left = "-9999px";
 
-        /* =================================================
-           FALLBACK
-           Agar Gemini expected format follow na kare
-           ================================================= */
+            document.body.appendChild(textarea);
+            textarea.select();
 
-        if (!foundAny) {
+            try {
+                const copied = document.execCommand("copy");
+                alert(copied ? successMessage : "Unable to copy text.");
+            } catch (error) {
+                alert("Unable to copy text. Please select and copy it manually.");
+            }
 
-
-            const card =
-                document.createElement(
-                    "div"
-                );
-
-
-            card.className =
-                "analysis-card";
-
-
-            const heading =
-                document.createElement(
-                    "h3"
-                );
-
-
-            heading.textContent =
-                "🤖 AI Analysis";
-
-
-            const contentDiv =
-                document.createElement(
-                    "div"
-                );
-
-
-            contentDiv.className =
-                "analysis-content";
-
-
-            contentDiv.innerHTML =
-                escapeHtml(
-                    text
-                );
-
-
-            card.appendChild(
-                heading
-            );
-
-
-            card.appendChild(
-                contentDiv
-            );
-
-
-            container.appendChild(
-                card
-            );
-
+            document.body.removeChild(textarea);
         }
 
-    }
+        function copyAnalysis() {
+            copyText("analysisContent", "AI analysis copied successfully!");
+        }
 
+        function copyResumeText() {
+            copyText("resumeContent", "Resume text copied successfully!");
+        }
 
-    /* =====================================================
-       START ANALYSIS DISPLAY
-       ===================================================== */
+        function downloadAnalysis() {
+            const element = document.getElementById("analysisContent");
+            const text = element ? element.innerText : "";
 
-    createAnalysisCards(rawText);
+            if (!text.trim()) {
+                alert("No analysis is available to download.");
+                return;
+            }
 
+            const blob = new Blob([text], {
+                type: "text/plain;charset=utf-8"
+            });
 
-</script>
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
 
+            link.href = url;
+            link.download = "resume-analysis.txt";
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            URL.revokeObjectURL(url);
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            formatAnalysisHeadings();
+        });
+    </script>
 
 </body>
-
 </html>
- 

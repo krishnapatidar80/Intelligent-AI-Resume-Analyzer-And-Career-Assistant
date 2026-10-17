@@ -120,4 +120,8 @@ public class UserDaoImpl implements UserDao {
 
         return userRepository.findByEmail(email);
     }
+    
+    public String encodePassword(String rawPassword) {
+        return passwordEncoder.encode(rawPassword);
+    }
 }
