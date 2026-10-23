@@ -14,6 +14,6 @@ WORKDIR /app
 
 COPY --from=build /app/target/AI-Resume-Analyzer-Project-0.0.1-SNAPSHOT.war app.war
 
-EXPOSE 8080
+EXPOSE 10000
 
 ENTRYPOINT ["java", "-jar", "app.war"]
