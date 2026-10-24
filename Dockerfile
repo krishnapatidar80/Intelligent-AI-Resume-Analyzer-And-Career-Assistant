@@ -16,4 +16,4 @@ COPY --from=build /app/target/AI-Resume-Analyzer-Project-0.0.1-SNAPSHOT.war app.
 
 EXPOSE 10000
 
-ENTRYPOINT ["java", "-jar", "app.war"]
+ENTRYPOINT ["sh", "-c", "exec java -Dserver.address=0.0.0.0 -Dserver.port=${PORT:-10000} -jar app.war"]
