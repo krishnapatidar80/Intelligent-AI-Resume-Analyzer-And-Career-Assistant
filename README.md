@@ -172,51 +172,34 @@ Improved Resume Content
 
 ---
 
-## 📸 Screenshots
+## 📸 Application Screenshots
 
-### 📝 Registration
+### 📝 Registration Page
+<img src="Screenshorts/register.png" width="850" alt="Registration Page">
 
-<img src="screenshots/register.png" width="850">
+### 🔐 Login Page
+<img src="Screenshorts/login.png" width="850" alt="Login Page">
 
-### 🔐 Login
+### 🏠 Home Page
+<img src="Screenshorts/home.png" width="850" alt="Home Page">
 
-<img src="screenshots/login.png" width="850">
+### 📤 Resume Upload
+<img src="Screenshorts/upload-resume.png" width="850" alt="Resume Upload">
 
-### 🏠 Home
-
-<img src="screenshots/home.png" width="850">
-
-### ✨ Features
-
-<img src="screenshots/feature.png" width="850">
-
-### 📤 Upload Resume
-
-<img src="screenshots/upload-resume.png" width="850">
-
-### ✅ Upload Success
-
-<img src="screenshots/upload-success.png" width="850">
+### 📊 Resume Analysis Result
+<img src="Screenshorts/analysis-result.png" width="850" alt="Resume Analysis Result">
 
 ### 📚 Resume History
-
-<img src="screenshots/resume-history.png" width="850">
-
-### ✍️ Resume Rewriter
-
-<img src="screenshots/resume-rewrite.png" width="850">
+<img src="Screenshorts/resume-history.png" width="850" alt="Resume History">
 
 ### 🎯 Job Matching
-
-<img src="screenshots/job-matching.png" width="850">
+<img src="Screenshorts/job-matching.png" width="850" alt="Job Matching">
 
 ### 🎤 Interview Questions
+<img src="Screenshorts/interview-questions.png" width="850" alt="Interview Questions">
 
-<img src="screenshots/interview-question.png" width="850">
-
-### 📊 Job Match Result
-
-<img src="screenshots/job-match-result.png" width="850">
+### ✍️ Resume Rewriter
+<img src="Screenshorts/resume-rewrite.png" width="850" alt="Resume Rewriter">
 
 ---
 
